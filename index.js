@@ -45,6 +45,7 @@ let page = URLS.parse(websiteUrl, true).query.page  // 如果 url 参数中存�
 // 储存已经下载过的图片名称
 let downloadList = new Set()
 
+// 执行主入口
 downloadImgsOn(websiteUrl)
 
 // 下载指定网站包含的图片
@@ -105,7 +106,6 @@ downloadImgsOn(websiteUrl)
     req.end();
 }*/
 
-
 /**
  * 新版下载指定网站包含的图片
  * @param url  网站url
@@ -133,14 +133,15 @@ function downloadImgsOn(url, isRepeat = false) {
 
             // 最大页数，读取当前网站的ol列表下的li标签数量
             // const maxPage = $('ol li').length
-            let maxPage = 0
+            let maxPage = 1
             $('ol li').children().each((i, e)=>{
                 maxPage = Number($(e).text().trim());
             });
-            console.log(maxPage)
+            // console.log(maxPage)
+            // console.log(imgs[26].attributes)
 
             // 如果当前页大于分页页数，就返回
-            if (page > maxPage) {
+            if (page && page > maxPage) {
                 return
             }
 
