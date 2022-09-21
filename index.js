@@ -124,7 +124,8 @@ function downloadImgsOn(url, isRepeat = false) {
 
             // 将html信息转换为类jq对象
             const $ = cheerio.load(body);
-            const imgs = $('img')
+            const imgs = $('img')  // 查找到页面所有的img标签，相当于模糊查找
+            // const imgs = $('.ec-product-listwishicon')  // 查找到页面所有class为ec-product-listwishicon的标签，更加精确的查找
 
             // 如果找不到就直接返回
             if (imgs.length == 0) {
@@ -132,13 +133,15 @@ function downloadImgsOn(url, isRepeat = false) {
             }
 
             // 最大页数，读取当前网站的ol列表下的li标签数量
-            // const maxPage = $('ol li').length
+            // const maxPage = $('ol').find('li').length
             let maxPage = 1
-            $('ol li').children().each((i, e)=>{
+            // 每次都会循环，消耗性能
+            /*$('ol').children().each((i, e)=>{
                 maxPage = Number($(e).text().trim());
-            });
+            });*/
+            maxPage = Number($('ol').children().last().text().trim()) // 直接获取最后一个，优化性能
+
             // console.log(maxPage)
-            // console.log(imgs[26].attributes)
 
             // 如果当前页大于分页页数，就返回
             if (page && page > maxPage) {
@@ -155,14 +158,29 @@ function downloadImgsOn(url, isRepeat = false) {
             const imgUrlSet = new Set()
             imgs.each((index, img) => {
                 // 获取图片url
-                let imgUrl = img.attribs.src
-                // 将不完整的图片url转完成完整的图片url
-                if (imgUrl.startsWith('//')) {
-                    imgUrl = protocol + imgUrl
-                } else if (imgUrl.startsWith('/')) {
-                    imgUrl = url + imgUrl
+                if(img.attribs.src) {
+                    let imgUrl = img.attribs.src
+                    // 将不完整的图片url转完成完整的图片url
+                    if (imgUrl.startsWith('//')) {
+                        imgUrl = protocol + imgUrl
+                    } else if (imgUrl.startsWith('/')) {
+                        imgUrl = url + imgUrl
+                    }
+                    imgUrlSet.add(imgUrl)
                 }
-                imgUrlSet.add(imgUrl)
+
+                // 获取鼠标移入事件更换所的图片url（商品背面图）
+                if(img.attribs.onmouseover) {
+                    // 由于商品背面图是使用 onmouseover 事件触发，所以直接获取 onmouseover 是一个function (格式为：this.src='//en.acmedelavie.com/web/product/small/202209/d3088b9d29686b60e2ae3fecde62f257.jpg')，所以我们使用 .replace("this.src='", '').replace("'", '') 来替换掉不可用部分
+                    let backImgUrl = img.attribs.onmouseover.replace("this.src='", '').replace("'", '');
+                    // 将不完整的图片url转完成完整的图片url
+                    if (backImgUrl.startsWith('//')) {
+                        backImgUrl = protocol + backImgUrl
+                    } else if (backImgUrl.startsWith('/')) {
+                        backImgUrl = url + backImgUrl
+                    }
+                    imgUrlSet.add(backImgUrl)
+                }
             })
 
             // console.log(downloadList)
@@ -185,8 +203,8 @@ function downloadImgsOn(url, isRepeat = false) {
             console.log('获取图片url共%s个', imgUrlSet.size)
             // 下载imgUrlSet中包含的图片
             for (const imgUrl of imgUrlSet) {
-                downloadList.add(imgUrl)
-                downloadImg(imgUrl)
+                downloadList.add(imgUrl) // 在已下载的图片记录中追加当前图片名称
+                downloadImg(imgUrl) // 执行下载图片操作
             }
 
             // 如果支持分页，则递归执行
@@ -309,7 +327,7 @@ function downloadImg(imgUrl, maxRetry = 1, timeout = 5000) {
  */
 function write(distFileName, chunks, index) {
     if (index === 0) {
-        var i = 0
+        let i = 0
 
         // 判断文件是否重名,若重名则重新生成带序号的文件名
         let tmpFileName = distFileName
