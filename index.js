@@ -30,8 +30,9 @@ for (const dir of [imgDir, pageDir]) {
 // let websiteUrl = 'https://www.fashioneditorials.com/'
 // let websiteUrl = 'https://www.fashioneditorials.com/robbie-fimmano-marie-claire-tilly-main/'
 // let websiteUrl = 'https://en.acmedelavie.com/category/%EC%8B%A0%EC%83%81%ED%92%88/50/?page=1'
-let websiteUrl = 'https://en.acmedelavie.com/category/products/49/?page=1'
-// let websiteUrl = 'https://www.voguehk.com/zh/vogue-man/'
+// let websiteUrl = 'https://en.acmedelavie.com/category/products/49/?page=1'
+let websiteUrl = 'https://chuumade.com/collections/all?page=1'
+// let websiteUrl = 'https://www.jacquemus.com/en_fr/le-papier-new-arrivals-women'
 // let websiteUrl = 'http://image.so.com/i?q=%E7%8C%AB&src=tab_www'
 
 
@@ -112,7 +113,15 @@ downloadImgsOn(websiteUrl)
  * @param isRepeat 是否进行去重判断
  */
 function downloadImgsOn(url, isRepeat = false) {
-    request(url, function(err, res, body) {
+    request({
+        url: url,
+        // 新增请求头
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36',
+        }
+    }, function(err, res, body) {
+        // console.log(res.statusCode)
+        // console.log(body)
         if(!err && res.statusCode === 200) {
             // URL作为options
             const options = new URL(url);
@@ -125,6 +134,7 @@ function downloadImgsOn(url, isRepeat = false) {
             // 将html信息转换为类jq对象
             const $ = cheerio.load(body);
             const imgs = $('img')  // 查找到页面所有的img标签，相当于模糊查找
+            // console.log(imgs.length)
             // const imgs = $('.ec-product-listwishicon')  // 查找到页面所有class为ec-product-listwishicon的标签，更加精确的查找
 
             // 如果找不到就直接返回
@@ -135,11 +145,16 @@ function downloadImgsOn(url, isRepeat = false) {
             // 最大页数，读取当前网站的ol列表下的li标签数量
             // const maxPage = $('ol').find('li').length
             let maxPage = 1
+
+            // 获取 https://en.acmedelavie.com 网站的分页
             // 每次都会循环，消耗性能
             /*$('ol').children().each((i, e)=>{
                 maxPage = Number($(e).text().trim());
             });*/
-            maxPage = Number($('ol').children().last().text().trim()) // 直接获取最后一个，优化性能
+            // Number($('ol').children().last().text().trim()) ? maxPage = Number($('ol').children().last().text().trim()) : 1 // 直接获取最后一个，优化性能
+
+            // 获取 https://chuumade.com 网站的分页
+            Number($('.page-number').last().text().trim()) ? maxPage = Number($('.page-number').last().text().trim()) : 1 // 直接获取最后一个，优化性能
 
             // console.log(maxPage)
 
