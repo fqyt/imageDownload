@@ -8,9 +8,10 @@ const fs = require('fs')
 // 用于获取系统文件分隔符
 const path = require('path')
 const sep = path.sep
-// 用于存储图片和网页的文件夹路径
+// 用于存储图片和网页以及已下载图片日志的文件夹路径
 const imgDir = `${__dirname}${sep}images${sep}`
 const pageDir = `${__dirname}${sep}pages${sep}`
+const logDir = `${__dirname}${sep}downloadLog${sep}`
 // https协议名
 const HTTPS = 'https:'
 // 基于HTTP封装的请求库
@@ -19,7 +20,7 @@ const request = require('request');
 const URLS = require('url');
 
 // 若文件夹不存在则创建
-for (const dir of [imgDir, pageDir]) {
+for (const dir of [imgDir, pageDir, logDir]) {
     if (!fs.existsSync(dir)) {
         console.log('文件夹(%s)不存在,即将为您创建', dir)
         fs.mkdirSync(dir)
@@ -35,7 +36,8 @@ let websiteUrl = 'https://chuumade.com/collections/all?page=1'
 // let websiteUrl = 'https://www.jacquemus.com/en_fr/le-papier-new-arrivals-women'
 // let websiteUrl = 'http://image.so.com/i?q=%E7%8C%AB&src=tab_www'
 
-
+// URL作为options
+const options = new URL(websiteUrl);
 // 下载中的图片数量
 let downloadingCount = 0
 // 当前下载的页数
@@ -45,6 +47,21 @@ let page = URLS.parse(websiteUrl, true).query.page  // 如果 url 参数中存�
 
 // 储存已经下载过的图片名称
 let downloadList = new Set()
+
+// 储存当前网站已经下载的图片的日志
+const logPath = logDir + '/' + options.host + '.txt'
+
+// 从日志文件中读取对应的日志用于复制重复下载
+fs.readFile(logPath, 'utf8', (err, dataStr) => {
+    // 读取失败
+    if(err) {
+        return console.log('读取文件失败！%s' + err.message);
+    }
+    const jsonData = JSON.parse('[' + dataStr.trim().slice(0, -1) + ']') // 字符串转json
+    for (const item of jsonData) {
+        downloadList.add(item.imageUrl) // 循环添加到内存中
+    }
+})
 
 // 执行主入口
 downloadImgsOn(websiteUrl)
@@ -110,9 +127,8 @@ downloadImgsOn(websiteUrl)
 /**
  * 新版下载指定网站包含的图片
  * @param url  网站url
- * @param isRepeat 是否进行去重判断
  */
-function downloadImgsOn(url, isRepeat = false) {
+function downloadImgsOn(url) {
     request({
         url: url,
         // 新增请求头
@@ -123,8 +139,6 @@ function downloadImgsOn(url, isRepeat = false) {
         // console.log(res.statusCode)
         // console.log(body)
         if(!err && res.statusCode === 200) {
-            // URL作为options
-            const options = new URL(url);
             // 获取协议
             const protocol = options.protocol
 
@@ -200,26 +214,25 @@ function downloadImgsOn(url, isRepeat = false) {
 
             // console.log(downloadList)
             // console.log(imgUrlSet)
-            // 从已下载的图片中判断是否已下载
-            if (isRepeat) {
-                for (const imgUrl of imgUrlSet) {
-                    if (downloadList.has(imgUrl)) {
-                        imgUrlSet.delete(imgUrl)
-                    }
-                }
 
-                // console.log(imgUrlSet)
-                // 如果去重后需要下载的为 0 就直接返回
-                if (imgUrlSet.size == 0) {
-                    return
+            // 从已下载的图片中判断是否已下载
+            for (const imgUrl of imgUrlSet) {
+                if (downloadList.has(imgUrl)) {
+                    imgUrlSet.delete(imgUrl)
                 }
             }
+            // console.log(imgUrlSet)
+            // 如果去重后需要下载的为 0 就直接返回
+            /*if (imgUrlSet.size == 0) {
+                return
+            }*/
 
             console.log('获取图片url共%s个', imgUrlSet.size)
             // 下载imgUrlSet中包含的图片
             for (const imgUrl of imgUrlSet) {
-                downloadList.add(imgUrl) // 在已下载的图片记录中追加当前图片名称
                 downloadImg(imgUrl) // 执行下载图片操作
+                downloadList.add(imgUrl) // 在已下载的图片记录中追加当前图片名称
+                appendLog(imgUrl).then(() => {}) // 已下载的文件名称写入日志文件
             }
 
             // 如果支持分页，则递归执行
@@ -230,10 +243,9 @@ function downloadImgsOn(url, isRepeat = false) {
                 // console.log(options.href)
                 websiteUrl = options.href
                 // console.log(websiteUrl)
-                // return page && imgs.length > 0 ? downloadImgsOn(websiteUrl, true) : ''  // 重复累赘的判断
 
                 // 递归
-                downloadImgsOn(websiteUrl, true)
+                downloadImgsOn(websiteUrl)
             }
         } else {
             console.log('请求发生错误！！！！！！！！！！')
@@ -267,10 +279,10 @@ function downloadImg(imgUrl, maxRetry = 1, timeout = 5000) {
         }
     }
 
-    // URL作为options
-    const options = new URL(imgUrl);
+    // 图片URL作为imgOptions
+    const imgOptions = new URL(imgUrl);
     // 根据协议选择发送请求的模块
-    const _http = options.protocol === HTTPS ? https : http
+    const _http = imgOptions.protocol === HTTPS ? https : http
 
     // 从url中提取文件名
     const matches = imgUrl.match(/(?<=.*\/)[^\/\?]+(?=\?|$)/)
@@ -278,7 +290,7 @@ function downloadImg(imgUrl, maxRetry = 1, timeout = 5000) {
 
     // 请求关闭时是否需要重新请求
     let retryFlag = false
-    const req = _http.request(options, (res) => {
+    const req = _http.request(imgOptions, (res) => {
         console.log('开始下载图片(%s)', imgUrl)
         downloadingCount += 1
         printDownloadingCount()
@@ -367,6 +379,33 @@ function write(distFileName, chunks, index) {
     } else {
         console.log('文件(%s)写入完毕', distFileName)
     }
+}
+
+/**
+ * 写入日志文件，储存当前网站已爬取图片的名称
+ * @param imgUrl 图片url
+ * @returns {Promise<void>} async 异步调用，返回promise，可以使用之后可以使用.then()
+ */
+async function appendLog(imgUrl){
+    // console.log(imgUrl)
+
+    // 从url中提取文件名
+    const matches = imgUrl.match(/(?<=.*\/)[^\/\?]+(?=\?|$)/)
+    const downloadFileName = matches && matches[0]
+
+    // 组装对象类型数据
+    const log = {
+        time: new Date().toLocaleString(),
+        imageUrl: imgUrl,
+        imageName: downloadFileName
+    }
+
+    // 写入日志文件
+    fs.appendFile(logPath, JSON.stringify(log) + ',\n', 'utf8', (error) => {
+        if (error) {
+            console.log(error)
+        }
+    });
 }
 
 
