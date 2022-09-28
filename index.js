@@ -28,13 +28,13 @@ for (const dir of [imgDir, pageDir, logDir]) {
 }
 
 // let websiteUrl = 'https://www.w3cschool.cn/'
-// let websiteUrl = 'https://www.fashioneditorials.com/'
-// let websiteUrl = 'https://www.fashioneditorials.com/robbie-fimmano-marie-claire-tilly-main/'
+// let websiteUrl = 'https://www.mlb-korea.com/display/majorView?dspCtgryNo=MBMA01&currentCtgryDpthCd=1&ctgrySectCd=GNRL_CTGRY&ctgryNoDpth1=MBMA01&mallPageSize=96&sortColumn=NEW_GOD_SEQ&prcStart=0&prcEnd=0&pageNo=1'
+// let websiteUrl = 'https://stylenandacn.com/category/%E5%A4%96%E5%A5%97/51/?page=1'
 // let websiteUrl = 'https://en.acmedelavie.com/category/%EC%8B%A0%EC%83%81%ED%92%88/50/?page=1'
 // let websiteUrl = 'https://en.acmedelavie.com/category/products/49/?page=1'
 let websiteUrl = 'https://chuumade.com/collections/all?page=1'
-// let websiteUrl = 'https://www.jacquemus.com/en_fr/le-papier-new-arrivals-women'
-// let websiteUrl = 'http://image.so.com/i?q=%E7%8C%AB&src=tab_www'
+// let websiteUrl = 'https://eu.icicle.com/en/lookbook-natural-way'
+// let websiteUrl = 'https://naning9.com.tw/category/%E5%A5%97%E8%A3%9D%E5%95%86%E5%93%81/44/?page=1'
 
 // URL作为options
 const options = new URL(websiteUrl);
@@ -57,6 +57,7 @@ fs.readFile(logPath, 'utf8', (err, dataStr) => {
     if(err) {
         return console.log('读取文件失败！%s' + err.message);
     }
+    console.log('正在从%s日志中读取已下载记录', logPath)
     const jsonData = JSON.parse('[' + dataStr.trim().slice(0, -1) + ']') // 字符串转json
     for (const item of jsonData) {
         downloadList.add(item.imageUrl) // 循环添加到内存中
@@ -170,8 +171,8 @@ function downloadImgsOn(url) {
             // 获取 https://chuumade.com 网站的分页
             Number($('.page-number').last().text().trim()) ? maxPage = Number($('.page-number').last().text().trim()) : 1 // 直接获取最后一个，优化性能
 
+            // console.log(page)
             // console.log(maxPage)
-
             // 如果当前页大于分页页数，就返回
             if (page && page > maxPage) {
                 return
@@ -266,7 +267,7 @@ function printDownloadingCount() {
  * @param {*} maxRetry 下载失败重试次数
  * @param {*} timeout 超时时间毫秒数
  */
-function downloadImg(imgUrl, maxRetry = 1, timeout = 5000) {
+function downloadImg(imgUrl, maxRetry = 3, timeout = 5000) {
     /**
      * 用于下载失败后重试
      */
