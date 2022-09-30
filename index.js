@@ -35,6 +35,8 @@ for (const dir of [imgDir, pageDir, logDir]) {
 let websiteUrl = 'https://chuumade.com/collections/all?page=1'
 // let websiteUrl = 'https://eu.icicle.com/en/lookbook-natural-way'
 // let websiteUrl = 'https://naning9.com.tw/category/%E5%A5%97%E8%A3%9D%E5%95%86%E5%93%81/44/?page=1'
+// let websiteUrl = 'https://www.qng.co.kr/product/list.html?cate_no=10&page=1'
+// let websiteUrl = 'https://www.dolcegabbana.com/zh/%E6%97%B6%E5%B0%9A/%E5%A5%B3%E5%A3%AB/%E6%9C%8D%E8%A3%85/?page=1'
 
 // URL作为options
 const options = new URL(websiteUrl);
@@ -55,7 +57,7 @@ const logPath = logDir + '/' + options.host + '.txt'
 fs.readFile(logPath, 'utf8', (err, dataStr) => {
     // 读取失败
     if(err) {
-        return console.log('读取文件失败！%s' + err.message);
+        return console.log('日志文件不存在或读取失败！详细原因：%s', err.message);
     }
     console.log('正在从%s日志中读取已下载记录', logPath)
     const jsonData = JSON.parse('[' + dataStr.trim().slice(0, -1) + ']') // 字符串转json
@@ -187,9 +189,23 @@ function downloadImgsOn(url) {
             // 用于保存需要下载的图片url,去除重复的图片url
             const imgUrlSet = new Set()
             imgs.each((index, img) => {
+                // console.log(img.attribs)
                 // 获取图片url
                 if(img.attribs.src) {
                     let imgUrl = img.attribs.src
+                    // 将不完整的图片url转完成完整的图片url
+                    if (imgUrl.startsWith('//')) {
+                        imgUrl = protocol + imgUrl
+                    } else if (imgUrl.startsWith('/')) {
+                        imgUrl = url + imgUrl
+                    }
+                    imgUrlSet.add(imgUrl)
+                }
+
+                // 获取使用['data-src']属性图片懒加载的图片url
+                if(img.attribs['data-src']) {
+                    // let imgUrl = img.attribs.src
+                    let imgUrl = img.attribs['data-src']
                     // 将不完整的图片url转完成完整的图片url
                     if (imgUrl.startsWith('//')) {
                         imgUrl = protocol + imgUrl
