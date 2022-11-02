@@ -5,27 +5,6 @@ const http = require('http')
 const cheerio = require('cheerio')
 // 用于将http响应中的数据写到文件中
 const fs = require('fs')
-// 用于获取系统文件分隔符
-const path = require('path')
-const sep = path.sep
-// 用于存储图片和网页以及已下载图片日志的文件夹路径
-const imgDir = `${__dirname}${sep}images${sep}`
-const pageDir = `${__dirname}${sep}pages${sep}`
-const logDir = `${__dirname}${sep}downloadLog${sep}`
-// https协议名
-const HTTPS = 'https:'
-// 基于HTTP封装的请求库
-const request = require('request');
-// 用于获取url
-const URLS = require('url');
-
-// 若文件夹不存在则创建
-for (const dir of [imgDir, pageDir, logDir]) {
-    if (!fs.existsSync(dir)) {
-        console.log('文件夹(%s)不存在,即将为您创建', dir)
-        fs.mkdirSync(dir)
-    }
-}
 
 // let websiteUrl = 'https://www.w3cschool.cn/'
 // let websiteUrl = 'https://www.mlb-korea.com/display/majorView?dspCtgryNo=MBMA01&currentCtgryDpthCd=1&ctgrySectCd=GNRL_CTGRY&ctgryNoDpth1=MBMA01&mallPageSize=96&sortColumn=NEW_GOD_SEQ&prcStart=0&prcEnd=0&pageNo=1'
@@ -40,6 +19,35 @@ let websiteUrl = 'https://chuumade.com/collections/all?page=1'
 
 // URL作为options
 const options = new URL(websiteUrl);
+
+// 用于获取系统文件分隔符
+const path = require('path')
+const sep = path.sep
+// 用于存储图片和网页以及已下载图片日志的文件夹路径
+const imgDir = `${__dirname}${sep}images${sep}`
+const pageDir = `${__dirname}${sep}pages${sep}`
+const logDir = `${__dirname}${sep}downloadLog${sep}`
+// 用于根据网站站点创建子目录
+const websiteUrlImgDir = `${__dirname}${sep}images${sep}${options.host}${sep}`
+const websiteUrlPageDir = `${__dirname}${sep}pages${sep}${options.host}${sep}`
+// 用于根据网站站点根据爬取日期创建子目录
+const dateTimeImgDir = `${__dirname}${sep}images${sep}${options.host}${sep}${new Date().getFullYear() + '-' + (new Date().getMonth() + 1) + '-' + new Date().getDate()}${sep}`
+const dateTimePageDir = `${__dirname}${sep}pages${sep}${options.host}${sep}${new Date().getFullYear() + '-' + (new Date().getMonth() + 1) + '-' + new Date().getDate()}${sep}`
+// https协议名
+const HTTPS = 'https:'
+// 基于HTTP封装的请求库
+const request = require('request');
+// 用于获取url
+const URLS = require('url');
+
+// 若文件夹不存在则创建
+for (const dir of [imgDir, pageDir, logDir, websiteUrlImgDir, websiteUrlPageDir, dateTimeImgDir, dateTimePageDir]) {
+    if (!fs.existsSync(dir)) {
+        console.log('文件夹(%s)不存在,即将为您创建', dir)
+        fs.mkdirSync(dir)
+    }
+}
+
 // 下载中的图片数量
 let downloadingCount = 0
 // 当前下载的页数
@@ -181,7 +189,7 @@ function downloadImgsOn(url) {
             }
 
             // 将html数据存储到文件中,可用于人工校验
-            const htmlFileName = `${pageDir}result.html`
+            const htmlFileName = `${dateTimePageDir}${page ? page : '1'}.html`
             fs.writeFile(htmlFileName, htmlData, () => {
                 console.log('页面(%s)读取完毕,已保存至(%s)', url, htmlFileName)
             })
@@ -331,7 +339,7 @@ function downloadImg(imgUrl, maxRetry = 3, timeout = 5000) {
                 // 若响应正常结束,将内存中的数据写入到文件中
                 if (res.complete) {
                     console.log('图片(%s)下载完成', imgUrl)
-                    write(imgDir + fileName, chunks, 0)
+                    write(dateTimeImgDir + fileName, chunks, 0)
                 } else {
                     console.log('(%s)下载结束但未完成', imgUrl)
                 }
