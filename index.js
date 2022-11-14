@@ -54,7 +54,7 @@ let downloadingCount = 0
 // let page = 1
 // console.log(URLS.parse(websiteUrl, true).query.page)  // URL.parse 的第二个参数为 true 时会以对象形式显示，方便获取里面的 page 参数
 let page = URLS.parse(websiteUrl, true).query.page  // 如果 url 参数中存在page这个参数，则代表该 url 支持分页查询，这样每获取完一页就+1爬取下一页图片
-let maxPage = 4 // 最大页数
+let maxPage = 1 // 最大页数
 
 // 储存已经下载过的图片名称
 let downloadList = new Set()
